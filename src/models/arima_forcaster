@@ -1,0 +1,30 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+class ARIMA(nn.Module):
+    def __init__(self, p, d, q):
+        super(ARIMA, self).__init__()
+        self.p = p  
+        self.d = d  
+        self.q = q  
+        self.ar_coefficients = nn.Parameter(torch.randn(self.p))
+        self.ma_coefficients = nn.Parameter(torch.randn(self.q))
+        self.mean = nn.Parameter(torch.tensor(0.0))
+
+    def forward(self, x):
+        for i in range(self.d):
+            x = x - torch.roll(x, shifts=1)
+            x[0] = 0.0
+
+        x = torch.tensor(x.values, dtype=torch.float32)
+        ar_component = torch.zeros_like(x)
+        ma_component = torch.zeros_like(x)
+        for t in range(self.p, x.size(0)):
+            ar_component[t] = torch.dot(x[t-self.p:t], self.ar_coefficients)
+        for t in range(self.q, x.size(0)):
+            ma_component[t] = torch.dot(x[t-self.q:t], self.ma_coefficients)
+
+       
+        y = ar_component + ma_component + self.mean
+        return y
